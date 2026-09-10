@@ -1,35 +1,40 @@
 # TAP inspector
 
-Page-only expandable indicator. Its primary state describes TAP on the current
-page. Optional transport details live under Diagnostics and are never presented
-as the health of TAP as a whole. Context facts are contributed by independent
-sources via `tap-pack-sdk/context`, then rendered without site-specific menus.
-The shared source lives in `../tap-pack-sdk/src/context.js`.
+Page-only expandable indicator. Core supplies the origin-scoped pack identities
+and versions that were applied to the document. Independent page packs contribute
+their own feature facts through `tap-pack-sdk/context`. The inspector only renders
+those two generic inputs; it has no site, transport, capture, or feature semantics.
+The shared context source lives in `../tap-pack-sdk/src/context.js`.
 
 `context(window).provide(() => [{label, value}])` returns an unregister function.
 Sources return current observations; the inspector samples them once per second.
 The same snapshot is usable by another page-local projection. Labels are plain
 text, never HTML. This is a small observation seam, not an ontology compiler.
 
-The built-in runtime view uses the current Core `TapBridge.status()` API. A page
-with WebSocket disabled remains healthy: HTTP plan reconciliation and page
-features continue to work. WebSocket appears only as the optional `Local requests`
-diagnostic. No new WS or network calls are made. No tokens, request contents, or
-privileged Core controls are exposed.
+The runtime view uses `TapBridge.status().packs`. It displays each `{id, version}`
+verbatim under `Packs`. `Features` contains the current `{label, value}` facts from
+the context registry. No new network calls are made. No tokens, request contents,
+or privileged Core controls are exposed.
 
-LinkedIn 0.4.9 contributes mounted Copy button count and hidden promoted post count.
-These observations do not claim successful Save, installed pack enumeration,
-profile-wide health, or verified capture. Other packs can contribute independently.
-The indicator is page-local and not a trusted browser or OS security indicator.
+Packs can contribute independently. An empty `Features` slot means that no loaded
+pack contributed a fact; the inspector does not infer behavior from the DOM or
+from a pack id. The indicator is page-local and not a profile-wide health claim.
 
 Click the bottom-left T to expand. All visible copy is English. Escape, outside
 click, or × closes it.
 Duplicate injection disposes the previous indicator and its listeners/timer.
-Currently no persistence or Core enable/disable actions are offered.
+No persistence or Core enable/disable actions are offered.
 
 Build/check with the SDK; tests/browser.cjs exercises the generated artifact with
-synthetic sources in isolated Chrome, including missing/disconnected WS, changing
-and removed sources, Escape, reinjection and disposal.
+synthetic sources in isolated Chrome, including missing Core context, pack versions,
+changing and removed feature facts, Escape, reinjection and disposal.
+
+## 0.3.1
+
+The panel is a passive projection with `Packs` and `Features` slots. Transport
+diagnostics and explanatory capture text were removed. Pack identity comes from
+the origin-scoped Core page plan; feature text remains owned by each contributing
+pack.
 
 ## 0.3.0
 
