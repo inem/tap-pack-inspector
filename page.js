@@ -8,11 +8,11 @@ if (window.top === window) {
   host.dataset.tapInspector = '';
   const root = host.attachShadow({mode:'open'});
   root.innerHTML = `<style>
-    :host{position:fixed!important;bottom:16px!important;left:16px!important;z-index:2147483646!important;font:13px/1.45 system-ui,-apple-system,sans-serif!important;color:#eef1f3!important;color-scheme:dark}
+    :host{position:fixed!important;bottom:0!important;left:0!important;z-index:2147483646!important;font:13px/1.45 system-ui,-apple-system,sans-serif!important;color:#eef1f3!important;color-scheme:dark}
     *{box-sizing:border-box}button{font:inherit;color:inherit;cursor:pointer}
-    .lamp{border:1px solid #58616b;background:#20262d;border-radius:50%;width:34px;height:34px;box-shadow:0 2px 8px #0004;display:flex;align-items:center;justify-content:center;gap:3px}
-    .dot,.status-dot{width:6px;height:6px;border-radius:50%;border:1px solid #9aa4ae;flex:none}.active{background:#77d8ac;border-color:#77d8ac}.warning{background:#e5b567;border-color:#e5b567}
-    section{position:absolute;bottom:44px;left:0;width:min(320px,calc(100vw - 32px));max-height:65vh;overflow:auto;border:1px solid #505a65;border-radius:14px;background:#20262d;box-shadow:0 8px 32px #0005;padding:16px}
+    .lamp{border:0;background:transparent;width:20px;height:20px;padding:6px;display:flex;align-items:center;justify-content:center}
+    .dot,.status-dot{width:6px;height:6px;border-radius:50%;border:1px solid #9aa4ae;flex:none}.lamp .dot{width:8px;height:8px}.active{background:#77d8ac;border-color:#77d8ac}.lamp .active{box-shadow:0 0 6px #77d8acaa}.warning{background:#e5b567;border-color:#e5b567}.lamp .warning{box-shadow:0 0 6px #e5b567aa}
+    section{position:absolute;bottom:24px;left:8px;width:min(320px,calc(100vw - 24px));max-height:65vh;overflow:auto;border:1px solid #505a65;border-radius:14px;background:#20262d;box-shadow:0 8px 32px #0005;padding:16px}
     [hidden]{display:none}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}header button{border:0;background:none;font-size:20px;padding:4px}small{color:#adb6bf}
     .status{display:flex;gap:9px;align-items:center;margin:18px 0 14px;padding:13px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08}
     h2{font-size:11px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em;color:#8f9aa5;margin:17px 0 5px}
@@ -27,7 +27,7 @@ if (window.top === window) {
     <div class="packs" hidden><h2>Packs</h2><ul></ul></div>
     <div class="facts" hidden><h2>Features</h2><ul></ul></div>
   </section>
-  <button class="lamp" aria-label="Open TAP page context" aria-expanded="false" aria-controls="panel">T<span class="dot"></span></button>`;
+  <button class="lamp" aria-label="Open TAP page context" aria-expanded="false" aria-controls="panel"><span class="dot"></span></button>`;
 
   const panel = root.querySelector('section');
   const lamp = root.querySelector('.lamp');
@@ -45,7 +45,12 @@ if (window.top === window) {
       warning: Boolean(bridge) && plan === 'unavailable',
       title: !bridge ? 'Unavailable' : plan === 'revoked' ? 'Inactive' : updating ? 'Updating' : 'Active',
       packs: Array.isArray(status.packs) ? status.packs.filter(pack => pack
-        && typeof pack.id === 'string' && typeof pack.version === 'string') : [],
+        && typeof pack.id === 'string' && typeof pack.version === 'string').map(pack => ({
+          ...pack,
+          features:Array.isArray(pack.features) ? pack.features.filter(feature => feature
+            && typeof feature.id === 'string' && typeof feature.label === 'string'
+            && typeof feature.value === 'string') : [],
+        })) : [],
     };
   }
 
@@ -76,7 +81,13 @@ if (window.top === window) {
 
   function refresh() {
     const runtime = runtimeSnapshot();
-    const facts = observations.snapshot();
+    const facts = [
+      ...runtime.packs.flatMap(pack => pack.features.map(feature => ({
+        id:`${pack.id}.${feature.id}`,kind:'feature',
+        label:`${pack.id} · ${feature.label}`,value:feature.value,
+      }))),
+      ...observations.snapshot(),
+    ];
     const signature = JSON.stringify({runtime,facts});
     if (signature === previous) return;
     previous = signature;
