@@ -12,7 +12,7 @@ if (window.top === window) {
     :host{position:fixed!important;bottom:0!important;left:0!important;z-index:2147483646!important;font:13px/1.45 system-ui,-apple-system,sans-serif!important;color:#eef1f3!important;color-scheme:dark}
     *{box-sizing:border-box}button{font:inherit;color:inherit;cursor:pointer}
     .lamp{border:0;background:transparent;width:20px;height:20px;padding:6px;display:flex;align-items:center;justify-content:center}
-    .dot,.status-dot{width:6px;height:6px;border-radius:50%;border:1px solid #9aa4ae;flex:none}.lamp .dot{width:8px;height:8px}.active{background:#77d8ac;border-color:#77d8ac}.lamp .active{box-shadow:0 0 6px #77d8acaa}.transport{background:#5aa9ff;border-color:#5aa9ff}.lamp .transport{animation:tap-transport-pulse 900ms ease-in-out infinite;will-change:transform,box-shadow}.warning{background:#e5b567;border-color:#e5b567}.lamp .warning{box-shadow:0 0 6px #e5b567aa}
+    .dot,.status-dot{width:6px;height:6px;border-radius:50%;border:1px solid #9aa4ae;flex:none}.lamp .dot{width:8px;height:8px}.active{background:#77d8ac;border-color:#77d8ac}.lamp .active{box-shadow:0 0 6px #77d8acaa}.development,.transport{background:#5aa9ff;border-color:#5aa9ff}.lamp .development{box-shadow:0 0 6px #5aa9ffaa}.lamp .transport{animation:tap-transport-pulse 900ms ease-in-out infinite;will-change:transform,box-shadow}.warning{background:#e5b567;border-color:#e5b567}.lamp .warning{box-shadow:0 0 6px #e5b567aa}
     @keyframes tap-transport-pulse{0%,100%{transform:scale(1.22);box-shadow:0 0 5px #5aa9ffbb,0 0 0 0 #5aa9ff44}50%{transform:scale(1.65);box-shadow:0 0 10px #5aa9ffee,0 0 0 4px #5aa9ff1f}}
     @media (prefers-reduced-motion:reduce){.lamp .transport{animation:none;transform:scale(1.35);box-shadow:0 0 8px #5aa9ffdd}}
     section{position:absolute;bottom:24px;left:8px;width:min(320px,calc(100vw - 24px));max-height:65vh;overflow:auto;border:1px solid #505a65;border-radius:14px;background:#20262d;box-shadow:0 8px 32px #0005;padding:16px}
@@ -64,6 +64,7 @@ if (window.top === window) {
     const plan = status.plan_state || (bridge ? 'current' : 'absent');
     const active = Boolean(bridge) && plan !== 'revoked';
     const updating = plan === 'checking' || plan === 'reloading';
+    const development = active && status.mode === 'development';
     const activity = status.activity && typeof status.activity === 'object' ? status.activity : {};
     if (Number.isInteger(activity.sequence) && activity.sequence !== activitySequence) {
       activitySequence = activity.sequence;
@@ -71,10 +72,11 @@ if (window.top === window) {
     }
     return {
       active,
+      development,
       transportActive: (Number.isInteger(activity.pending) && activity.pending > 0)
         || Date.now() < activityUntil || (Number.isInteger(status.pending) && status.pending > 0),
       warning: Boolean(bridge) && plan === 'unavailable',
-      title: !bridge ? 'Unavailable' : plan === 'revoked' ? 'Inactive' : updating ? 'Updating' : 'Active',
+      title: !bridge ? 'Unavailable' : plan === 'revoked' ? 'Inactive' : updating ? 'Updating' : development ? 'Development' : 'Active',
       packs: Array.isArray(status.packs) ? status.packs.filter(pack => pack
         && typeof pack.id === 'string' && typeof pack.version === 'string').map(pack => ({
           ...pack,
@@ -88,7 +90,7 @@ if (window.top === window) {
 
   function refreshLamp(runtime = runtimeSnapshot()) {
     const state = runtime.transportActive ? 'transport'
-      : runtime.active ? 'active' : runtime.warning ? 'warning' : '';
+      : runtime.development ? 'development' : runtime.active ? 'active' : runtime.warning ? 'warning' : '';
     root.querySelector('.dot').className = `dot ${state}`;
     lamp.setAttribute('aria-label', runtime.transportActive
       ? 'TAP transport active' : 'Open TAP page context');
@@ -173,7 +175,7 @@ if (window.top === window) {
     previous = signature;
 
     root.querySelector('.status strong').textContent = runtime.title;
-    root.querySelector('.status-dot').className = `status-dot ${runtime.active ? 'active' : runtime.warning ? 'warning' : ''}`;
+    root.querySelector('.status-dot').className = `status-dot ${runtime.development ? 'development' : runtime.active ? 'active' : runtime.warning ? 'warning' : ''}`;
     refreshLamp(runtime);
 
     const packsBlock = root.querySelector('.packs');

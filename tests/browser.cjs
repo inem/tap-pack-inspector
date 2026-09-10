@@ -31,9 +31,10 @@ const fs=require('fs'),assert=require('node:assert/strict');
       window.fixturePlanState='current';
       window.fixturePending=0;
       window.fixtureActivity={pending:0,outbound:0,inbound:0,sequence:0};
+      window.fixtureMode='installed';
       window.fixtureOperations=new Map();
       window.fixtureRequests=[];
-      window.TapBridge={isReady:()=>false,request:async(handler,args)=>{window.fixtureRequests.push({handler,args});return{path:'/fixture/'+args.path};},expose:(name,handler)=>{window.fixtureOperations.set(name,handler);return()=>window.fixtureOperations.delete(name);},status:()=>({state:window.fixtureBridgeState,plan_state:window.fixturePlanState,pending:window.fixturePending,activity:window.fixtureActivity,actions:[],packs:[{id:'fixture.reader',version:'2.0.0',features:[{id:'archive',label:'Session archive',value:'Versioned JSON',folder:'data/readers/fixture.reader'}]},{id:'fixture.ui',version:'1.2.3',features:[]},{id:'tap.inspector',version:'0.3.9',features:[{id:'page-inspection',label:'Page inspection',value:'Local WebSocket operations'}]}]})};
+      window.TapBridge={isReady:()=>false,request:async(handler,args)=>{window.fixtureRequests.push({handler,args});return{path:'/fixture/'+args.path};},expose:(name,handler)=>{window.fixtureOperations.set(name,handler);return()=>window.fixtureOperations.delete(name);},status:()=>({state:window.fixtureBridgeState,plan_state:window.fixturePlanState,mode:window.fixtureMode,pending:window.fixturePending,activity:window.fixtureActivity,actions:[],packs:[{id:'fixture.reader',version:'2.0.0',features:[{id:'archive',label:'Session archive',value:'Versioned JSON',folder:'data/readers/fixture.reader'}]},{id:'fixture.ui',version:'1.2.3',features:[]},{id:'tap.inspector',version:'0.3.9',features:[{id:'page-inspection',label:'Page inspection',value:'Local WebSocket operations'}]}]})};
       window.fixtureValue='2 controls';
       window.fixtureKey=Symbol();
       window[Symbol.for('tap.page.observations.v1')].set(window.fixtureKey,()=>[
@@ -68,6 +69,10 @@ const fs=require('fs'),assert=require('node:assert/strict');
     assert.equal(await page.getByText('Diagnostics',{exact:true}).count(),0);
     assert.equal(await page.getByText('Traffic capture runs independently from page features.',{exact:true}).count(),0);
     assert.equal(await page.getByRole('button',{name:/Connect|Disconnect|Reconnect/}).count(),0);
+
+    await page.evaluate(()=>window.fixtureMode='development');
+    await page.getByText('Development',{exact:true}).waitFor();
+    assert.equal(await lamp.locator('.development').count(),1);
     const inspected=await page.evaluate(async()=>({
       describe:await window.fixtureOperations.get('tap.inspector.describe')({}),
       query:await window.fixtureOperations.get('tap.inspector.query')({selector:'h1'}),
@@ -87,7 +92,7 @@ const fs=require('fs'),assert=require('node:assert/strict');
     await page.evaluate(()=>window.fixtureValue='3 controls');
     await page.getByText('3 controls',{exact:true}).waitFor();
     await page.evaluate(()=>{window.fixtureBridgeState='ready';window.fixturePlanState='unavailable';});
-    await page.getByText('Active',{exact:true}).waitFor();
+    await page.getByText('Development',{exact:true}).waitFor();
 
     await page.evaluate(()=>window[Symbol.for('tap.page.observations.v1')].delete(window.fixtureKey));
     await page.getByText('Quick copy',{exact:true}).waitFor({state:'detached'});

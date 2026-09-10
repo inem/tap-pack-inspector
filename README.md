@@ -24,11 +24,19 @@ pack contributed a fact; the inspector does not infer behavior from the DOM or
 from a pack id. The collapsed control is only an 8px status LED in the bottom-left
 corner; the full TAP mark and details appear inside the opened panel. The indicator
 is page-local and not a profile-wide health claim.
+An installed page is green and labelled `Active`. When Core reports
+`TapBridge.status().mode === "development"`, the LED is blue and the panel is
+labelled `Development`; a missing mode keeps the installed appearance.
 
 Click the bottom-left LED to expand. All visible copy is English. Escape, outside
 click, or × closes it.
 Duplicate injection disposes the previous indicator and its listeners/timer.
 No persistence or Core enable/disable actions are offered.
+
+## 0.3.10
+
+Core development pages use a steady blue LED and the `Development` label. Normal
+installed pages remain green; active request traffic keeps the existing blue pulse.
 
 ## 0.3.9
 
