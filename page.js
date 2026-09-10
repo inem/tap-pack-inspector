@@ -19,7 +19,7 @@ if (window.top === window) {
     [hidden]{display:none}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}header button{border:0;background:none;font-size:20px;padding:4px}small{color:#adb6bf}
     .status{display:flex;gap:9px;align-items:center;margin:18px 0 14px;padding:13px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08}
     h2{font-size:11px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em;color:#8f9aa5;margin:17px 0 5px}
-    ul{list-style:none;padding:0;margin:0}li{padding:9px 0;border-top:1px solid #ffffff14;display:flex;justify-content:space-between;gap:12px}li span:last-child{color:#adb6bf;text-align:right}
+    ul{list-style:none;padding:0;margin:0}.pack{padding:0;border-top:1px solid #ffffff14}.pack-row,.feature-row{display:flex;justify-content:space-between;gap:12px}.pack-row{padding:9px 0}.pack-row span:last-child,.feature-row span:last-child{color:#adb6bf;text-align:right}.pack-features{margin:0 0 7px 9px;padding-left:10px;border-left:1px solid #ffffff18}.feature-row{padding:5px 0;font-size:12px}.feature-row span:first-child{color:#cbd2d8}.live-label{padding:8px 0 3px 19px;color:#8f9aa5;font-size:10px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em}
     a{color:inherit;text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
     button:focus-visible{outline:2px solid #77d8ac;outline-offset:3px}
   `;
@@ -41,9 +41,6 @@ if (window.top === window) {
   const packs = element('div', {class:'packs', hidden:true}, [
     element('h2', {text:'Packs'}), element('ul'),
   ]);
-  const facts = element('div', {class:'facts', hidden:true}, [
-    element('h2', {text:'Features'}), element('ul'),
-  ]);
   const panel = element('section', {
     id:'panel', role:'region', 'aria-label':'TAP page context', hidden:true,
   }, [
@@ -51,7 +48,6 @@ if (window.top === window) {
     hostname,
     element('div', {class:'status'}, [statusDot, statusTitle]),
     packs,
-    facts,
   ]);
   const lamp = element('button', {
     class:'lamp', 'aria-label':'Open TAP page context',
@@ -103,36 +99,45 @@ if (window.top === window) {
     return `https://github.com/inem/tap-pack-${slug}`;
   }
 
-  function addRows(list, facts) {
+  function row(label, value, href, className) {
+    const item = element('div', {class:className});
+    const name = typeof href === 'string' ? document.createElement('a') : document.createElement('span');
+    name.textContent = label;
+    if (name instanceof HTMLAnchorElement) {
+      name.href = href;
+      name.target = '_blank';
+      name.rel = 'noopener noreferrer';
+    }
+    item.append(name, element('span', {text:value}));
+    return item;
+  }
+
+  function featureRows(features) {
+    const list = element('ul', {class:'pack-features'});
+    for (const feature of features) {
+      if (typeof feature.label !== 'string' || typeof feature.value !== 'string') continue;
+      list.append(element('li', {}, [row(feature.label, feature.value, null, 'feature-row')]));
+    }
+    return list;
+  }
+
+  function renderPacks(list, runtimePacks, liveFacts) {
     list.replaceChildren();
-    for (const fact of facts) {
-      if (typeof fact.label !== 'string' || typeof fact.value !== 'string') continue;
-      const row = document.createElement('li');
-      for (const [index, text] of [fact.label, fact.value].entries()) {
-        const element = index === 0 && typeof fact.href === 'string'
-          ? document.createElement('a') : document.createElement('span');
-        element.textContent = text;
-        if (element instanceof HTMLAnchorElement) {
-          element.href = fact.href;
-          element.target = '_blank';
-          element.rel = 'noopener noreferrer';
-        }
-        row.append(element);
-      }
-      list.append(row);
+    for (const pack of runtimePacks) {
+      const children = [row(pack.id, pack.version, repository(pack.id), 'pack-row')];
+      if (pack.features.length) children.push(featureRows(pack.features));
+      list.append(element('li', {class:'pack'}, children));
+    }
+    if (liveFacts.length) {
+      const children = [element('div', {class:'live-label', text:'Live on this page'}), featureRows(liveFacts)];
+      list.append(element('li', {class:'pack live'}, children));
     }
   }
 
   function refresh() {
     const runtime = runtimeSnapshot();
-    const facts = [
-      ...runtime.packs.flatMap(pack => pack.features.map(feature => ({
-        id:`${pack.id}.${feature.id}`,kind:'feature',
-        label:`${pack.id} · ${feature.label}`,value:feature.value,
-      }))),
-      ...observations.snapshot(),
-    ];
-    const signature = JSON.stringify({runtime,facts});
+    const liveFacts = observations.snapshot();
+    const signature = JSON.stringify({runtime,liveFacts});
     if (signature === previous) return;
     previous = signature;
 
@@ -141,14 +146,8 @@ if (window.top === window) {
     refreshLamp(runtime);
 
     const packsBlock = root.querySelector('.packs');
-    addRows(packsBlock.querySelector('ul'), runtime.packs.map(pack => ({
-      label:pack.id,value:pack.version,href:repository(pack.id),
-    })));
-    packsBlock.hidden = runtime.packs.length === 0;
-
-    const factsBlock = root.querySelector('.facts');
-    addRows(factsBlock.querySelector('ul'), facts);
-    factsBlock.hidden = facts.length === 0;
+    renderPacks(packsBlock.querySelector('ul'), runtime.packs, liveFacts);
+    packsBlock.hidden = runtime.packs.length === 0 && liveFacts.length === 0;
   }
 
   function open(value) {
