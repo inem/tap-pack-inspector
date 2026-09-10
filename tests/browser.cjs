@@ -13,7 +13,7 @@ const fs=require('fs'),assert=require('node:assert/strict');
     const page=await browser.newPage();
     await page.route('**/*',route=>route.fulfill({body:'<!doctype html><h1>Fixture</h1>',contentType:'text/html'}));
     await page.goto('https://fixture.example');
-    const pack=process.argv[2] || 'artifacts/tap-inspector-0.3.4-built/pack';
+    const pack=process.argv[2] || 'artifacts/tap-inspector-0.3.5-built/pack';
     const code=fs.readFileSync(`${pack}/page.js`,'utf8');
     await page.addScriptTag({content:code});
     const lamp=page.getByRole('button',{name:'Open TAP page context'});
@@ -29,7 +29,8 @@ const fs=require('fs'),assert=require('node:assert/strict');
     await page.evaluate(()=>{
       window.fixtureBridgeState='disabled';
       window.fixturePlanState='current';
-      window.TapBridge={isReady:()=>false,status:()=>({state:window.fixtureBridgeState,plan_state:window.fixturePlanState,actions:[],packs:[{id:'fixture.reader',version:'2.0.0',features:[{id:'archive',label:'Session archive',value:'Versioned JSON'}]},{id:'fixture.ui',version:'1.2.3',features:[]},{id:'tap.inspector',version:'0.3.3',features:[]}]})};
+      window.fixturePending=0;
+      window.TapBridge={isReady:()=>false,status:()=>({state:window.fixtureBridgeState,plan_state:window.fixturePlanState,pending:window.fixturePending,actions:[],packs:[{id:'fixture.reader',version:'2.0.0',features:[{id:'archive',label:'Session archive',value:'Versioned JSON'}]},{id:'fixture.ui',version:'1.2.3',features:[]},{id:'tap.inspector',version:'0.3.5',features:[]}]})};
       window.fixtureValue='2 controls';
       window.fixtureKey=Symbol();
       window[Symbol.for('tap.page.observations.v1')].set(window.fixtureKey,()=>[
@@ -48,6 +49,13 @@ const fs=require('fs'),assert=require('node:assert/strict');
     assert.equal(await page.getByText('Diagnostics',{exact:true}).count(),0);
     assert.equal(await page.getByText('Traffic capture runs independently from page features.',{exact:true}).count(),0);
     assert.equal(await page.getByRole('button',{name:/Connect|Disconnect|Reconnect/}).count(),0);
+
+    await page.evaluate(()=>window.fixturePending=1);
+    const activeTransport=page.getByRole('button',{name:'TAP transport active'});
+    await activeTransport.waitFor();
+    assert.equal(await activeTransport.locator('.dot').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(90, 169, 255)');
+    await page.evaluate(()=>window.fixturePending=0);
+    await page.getByRole('button',{name:'Open TAP page context'}).waitFor();
 
     await page.evaluate(()=>window.fixtureValue='3 controls');
     await page.getByText('3 controls',{exact:true}).waitFor();

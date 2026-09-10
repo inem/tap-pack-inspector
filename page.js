@@ -12,7 +12,7 @@ if (window.top === window) {
     :host{position:fixed!important;bottom:0!important;left:0!important;z-index:2147483646!important;font:13px/1.45 system-ui,-apple-system,sans-serif!important;color:#eef1f3!important;color-scheme:dark}
     *{box-sizing:border-box}button{font:inherit;color:inherit;cursor:pointer}
     .lamp{border:0;background:transparent;width:20px;height:20px;padding:6px;display:flex;align-items:center;justify-content:center}
-    .dot,.status-dot{width:6px;height:6px;border-radius:50%;border:1px solid #9aa4ae;flex:none}.lamp .dot{width:8px;height:8px}.active{background:#77d8ac;border-color:#77d8ac}.lamp .active{box-shadow:0 0 6px #77d8acaa}.warning{background:#e5b567;border-color:#e5b567}.lamp .warning{box-shadow:0 0 6px #e5b567aa}
+    .dot,.status-dot{width:6px;height:6px;border-radius:50%;border:1px solid #9aa4ae;flex:none}.lamp .dot{width:8px;height:8px}.active{background:#77d8ac;border-color:#77d8ac}.lamp .active{box-shadow:0 0 6px #77d8acaa}.transport{background:#5aa9ff;border-color:#5aa9ff}.lamp .transport{box-shadow:0 0 7px #5aa9ffcc}.warning{background:#e5b567;border-color:#e5b567}.lamp .warning{box-shadow:0 0 6px #e5b567aa}
     section{position:absolute;bottom:24px;left:8px;width:min(320px,calc(100vw - 24px));max-height:65vh;overflow:auto;border:1px solid #505a65;border-radius:14px;background:#20262d;box-shadow:0 8px 32px #0005;padding:16px}
     [hidden]{display:none}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}header button{border:0;background:none;font-size:20px;padding:4px}small{color:#adb6bf}
     .status{display:flex;gap:9px;align-items:center;margin:18px 0 14px;padding:13px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08}
@@ -68,6 +68,7 @@ if (window.top === window) {
     const updating = plan === 'checking' || plan === 'reloading';
     return {
       active,
+      transportActive: Number.isInteger(status.pending) && status.pending > 0,
       warning: Boolean(bridge) && plan === 'unavailable',
       title: !bridge ? 'Unavailable' : plan === 'revoked' ? 'Inactive' : updating ? 'Updating' : 'Active',
       packs: Array.isArray(status.packs) ? status.packs.filter(pack => pack
@@ -78,6 +79,14 @@ if (window.top === window) {
             && typeof feature.value === 'string') : [],
         })) : [],
     };
+  }
+
+  function refreshLamp(runtime = runtimeSnapshot()) {
+    const state = runtime.transportActive ? 'transport'
+      : runtime.active ? 'active' : runtime.warning ? 'warning' : '';
+    root.querySelector('.dot').className = `dot ${state}`;
+    lamp.setAttribute('aria-label', runtime.transportActive
+      ? 'TAP transport active' : 'Open TAP page context');
   }
 
   function repository(packId) {
@@ -120,7 +129,7 @@ if (window.top === window) {
 
     root.querySelector('.status strong').textContent = runtime.title;
     root.querySelector('.status-dot').className = `status-dot ${runtime.active ? 'active' : runtime.warning ? 'warning' : ''}`;
-    root.querySelector('.dot').className = `dot ${runtime.active ? 'active' : runtime.warning ? 'warning' : ''}`;
+    refreshLamp(runtime);
 
     const packsBlock = root.querySelector('.packs');
     addRows(packsBlock.querySelector('ul'), runtime.packs.map(pack => ({
@@ -148,8 +157,10 @@ if (window.top === window) {
   document.documentElement.append(host);
   refresh();
   const timer = setInterval(refresh, 1000);
+  const lampTimer = setInterval(refreshLamp, 100);
   window.__tapInspector = {dispose() {
     clearInterval(timer);
+    clearInterval(lampTimer);
     host.remove();
     document.removeEventListener('pointerdown', outside);
     document.removeEventListener('keydown', keyboard);
