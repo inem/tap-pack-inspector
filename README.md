@@ -1,6 +1,6 @@
 # TAP inspector
 
-Page-only expandable indicator. Core supplies the origin-scoped pack identities,
+Page-only expandable corner LED. Core supplies the origin-scoped pack identities,
 versions and static manifest features. Independent page packs can additionally
 contribute changing facts through `tap-pack-sdk/context`. The inspector only renders
 those generic inputs; it has no site, transport, capture, or feature semantics.
@@ -20,9 +20,11 @@ or privileged Core controls are exposed.
 
 Packs can contribute independently. An empty `Features` slot means that no loaded
 pack contributed a fact; the inspector does not infer behavior from the DOM or
-from a pack id. The indicator is page-local and not a profile-wide health claim.
+from a pack id. The collapsed control is only an 8px status LED in the bottom-left
+corner; the full TAP mark and details appear inside the opened panel. The indicator
+is page-local and not a profile-wide health claim.
 
-Click the bottom-left T to expand. All visible copy is English. Escape, outside
+Click the bottom-left LED to expand. All visible copy is English. Escape, outside
 click, or × closes it.
 Duplicate injection disposes the previous indicator and its listeners/timer.
 No persistence or Core enable/disable actions are offered.

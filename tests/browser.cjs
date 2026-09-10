@@ -16,7 +16,14 @@ const fs=require('fs'),assert=require('node:assert/strict');
     const pack=process.argv[2] || 'artifacts/tap-inspector-0.3.3-built/pack';
     const code=fs.readFileSync(`${pack}/page.js`,'utf8');
     await page.addScriptTag({content:code});
-    await page.getByRole('button',{name:'Open TAP page context'}).click();
+    const lamp=page.getByRole('button',{name:'Open TAP page context'});
+    assert.equal((await lamp.textContent()).trim(),'');
+    const lampBox=await lamp.boundingBox();
+    assert.equal(lampBox.x,0);
+    assert.equal(lampBox.y,await page.evaluate(()=>innerHeight-20));
+    assert.equal(lampBox.width,20);
+    assert.equal(lampBox.height,20);
+    await lamp.click();
     assert(await page.getByText('Unavailable',{exact:true}).isVisible());
 
     await page.evaluate(()=>{
