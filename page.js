@@ -14,18 +14,17 @@ if (window.top === window) {
     .dot,.status-dot{width:6px;height:6px;border-radius:50%;border:1px solid #9aa4ae;flex:none}.active{background:#77d8ac;border-color:#77d8ac}.warning{background:#e5b567;border-color:#e5b567}
     section{position:absolute;bottom:44px;left:0;width:min(320px,calc(100vw - 32px));max-height:65vh;overflow:auto;border:1px solid #505a65;border-radius:14px;background:#20262d;box-shadow:0 8px 32px #0005;padding:16px}
     [hidden]{display:none}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}header button{border:0;background:none;font-size:20px;padding:4px}small{color:#adb6bf}
-    .status{display:flex;gap:9px;align-items:flex-start;margin:18px 0 14px;padding:13px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08}.status-dot{margin-top:6px}.status strong,.status span{display:block}.status span{color:#adb6bf;font-size:12px;margin-top:2px}
+    .status{display:flex;gap:9px;align-items:center;margin:18px 0 14px;padding:13px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08}
     h2{font-size:11px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em;color:#8f9aa5;margin:17px 0 5px}
     ul{list-style:none;padding:0;margin:0}li{padding:9px 0;border-top:1px solid #ffffff14;display:flex;justify-content:space-between;gap:12px}li span:last-child{color:#adb6bf;text-align:right}
-    details{border-top:1px solid #ffffff18;margin-top:14px;padding-top:12px}summary{cursor:pointer;color:#c6cdd3;user-select:none}details ul{margin-top:8px}.note{display:block;margin-top:10px;font-size:11px;color:#8f9aa5}
-    button:focus-visible,summary:focus-visible{outline:2px solid #77d8ac;outline-offset:3px}
+    button:focus-visible{outline:2px solid #77d8ac;outline-offset:3px}
   </style>
   <section id="panel" role="region" aria-label="TAP page context" hidden>
     <header><strong>TAP</strong><button aria-label="Close">×</button></header>
     <small class="hostname"></small>
-    <div class="status"><span class="status-dot"></span><div><strong></strong><span></span></div></div>
-    <div class="facts" hidden><h2>On this page</h2><ul></ul></div>
-    <details><summary>Diagnostics</summary><ul class="diagnostics"></ul><span class="note">Traffic capture runs independently from page features.</span></details>
+    <div class="status"><span class="status-dot"></span><strong></strong></div>
+    <div class="packs" hidden><h2>Packs</h2><ul></ul></div>
+    <div class="facts" hidden><h2>Features</h2><ul></ul></div>
   </section>
   <button class="lamp" aria-label="Open TAP page context" aria-expanded="false" aria-controls="panel">T<span class="dot"></span></button>`;
 
@@ -38,16 +37,14 @@ if (window.top === window) {
     const bridge = window.TapBridge;
     const status = bridge?.status?.() || {};
     const plan = status.plan_state || (bridge ? 'current' : 'absent');
-    const channel = status.state || (bridge?.isReady() ? 'ready' : bridge ? 'unknown' : 'absent');
-    const active = Boolean(bridge) && !['unavailable','revoked'].includes(plan);
+    const active = Boolean(bridge) && plan !== 'revoked';
     const updating = plan === 'checking' || plan === 'reloading';
     return {
       active,
       warning: Boolean(bridge) && plan === 'unavailable',
-      title: !bridge ? 'TAP is unavailable on this page' : plan === 'revoked' ? 'TAP is no longer active here' : plan === 'unavailable' ? 'TAP needs attention' : updating ? 'Updating this page' : 'Active on this page',
-      description: !bridge ? 'Reload the page to load its TAP features.' : plan === 'revoked' ? 'This page is removing its TAP features.' : plan === 'unavailable' ? 'Page features remain loaded, but updates cannot be checked right now.' : updating ? 'Checking for the latest page features.' : 'Page features are loaded and update automatically.',
-      plan: {current:'Current',checking:'Checking',reloading:'Applying update',unavailable:'Temporarily unavailable',revoked:'Access removed',absent:'Unavailable'}[plan] || 'Unavailable',
-      channel: {ready:'Available',connecting:'Connecting',retrying:'Reconnecting',paused:'Paused',suspended:'Suspended',unavailable:'Unavailable',disabled:'Not used on this page',absent:'Unavailable',unknown:'Unavailable'}[channel] || 'Unavailable',
+      title: !bridge ? 'Unavailable' : plan === 'revoked' ? 'Inactive' : updating ? 'Updating' : 'Active',
+      packs: Array.isArray(status.packs) ? status.packs.filter(pack => pack
+        && typeof pack.id === 'string' && typeof pack.version === 'string') : [],
     };
   }
 
@@ -67,23 +64,22 @@ if (window.top === window) {
 
   function refresh() {
     const runtime = runtimeSnapshot();
-    const facts = observations.snapshot().filter(fact => fact?.kind !== 'connection');
+    const facts = observations.snapshot();
     const signature = JSON.stringify({runtime,facts});
     if (signature === previous) return;
     previous = signature;
 
     root.querySelector('.status strong').textContent = runtime.title;
-    root.querySelector('.status span:last-child').textContent = runtime.description;
     root.querySelector('.status-dot').className = `status-dot ${runtime.active ? 'active' : runtime.warning ? 'warning' : ''}`;
     root.querySelector('.dot').className = `dot ${runtime.active ? 'active' : runtime.warning ? 'warning' : ''}`;
+
+    const packsBlock = root.querySelector('.packs');
+    addRows(packsBlock.querySelector('ul'), runtime.packs.map(pack => ({label:pack.id,value:pack.version})));
+    packsBlock.hidden = runtime.packs.length === 0;
 
     const factsBlock = root.querySelector('.facts');
     addRows(factsBlock.querySelector('ul'), facts);
     factsBlock.hidden = facts.length === 0;
-    addRows(root.querySelector('.diagnostics'), [
-      {label:'Page updates',value:runtime.plan},
-      {label:'Local requests',value:runtime.channel},
-    ]);
   }
 
   function open(value) {
