@@ -84,3 +84,9 @@ generic `TapBridge.expose(operation, handler)` boundary. Core transports opaque
 operation names and JSON values; DOM selection and the bounded result shape remain
 owned here. The LED follows Core's generic activity counter and holds the blue flash
 briefly so a fast page inspection is still visible.
+
+## 0.3.7
+
+During bridge activity the blue corner LED grows and pulses until the activity
+window closes. Reduced-motion environments keep the enlarged blue state without
+animation.
