@@ -30,6 +30,14 @@ click, or × closes it.
 Duplicate injection disposes the previous indicator and its listeners/timer.
 No persistence or Core enable/disable actions are offered.
 
+## 0.3.9
+
+The active state now shares the header row with the site name instead of occupying
+a large card. A feature may declare a profile-relative `folder`; the inspector
+shows the exact path and reveals that directory in Finder through its bounded
+handler. The handler accepts only existing directories under the profile's
+`data/` root.
+
 ## 0.3.4
 
 The inspector constructs its shadow DOM with DOM APIs, so it works on pages such

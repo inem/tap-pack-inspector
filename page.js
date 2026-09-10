@@ -16,10 +16,10 @@ if (window.top === window) {
     @keyframes tap-transport-pulse{0%,100%{transform:scale(1.22);box-shadow:0 0 5px #5aa9ffbb,0 0 0 0 #5aa9ff44}50%{transform:scale(1.65);box-shadow:0 0 10px #5aa9ffee,0 0 0 4px #5aa9ff1f}}
     @media (prefers-reduced-motion:reduce){.lamp .transport{animation:none;transform:scale(1.35);box-shadow:0 0 8px #5aa9ffdd}}
     section{position:absolute;bottom:24px;left:8px;width:min(320px,calc(100vw - 24px));max-height:65vh;overflow:auto;border:1px solid #505a65;border-radius:14px;background:#20262d;box-shadow:0 8px 32px #0005;padding:16px}
-    [hidden]{display:none}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}header button{border:0;background:none;font-size:20px;padding:4px}small{color:#adb6bf}
-    .status{display:flex;gap:9px;align-items:center;margin:18px 0 14px;padding:13px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08}
+    [hidden]{display:none}header{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;margin-bottom:7px}header>strong{font-size:14px}header>button{border:0;background:none;font-size:20px;padding:3px 4px}.hostname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#adb6bf}
+    .status{display:flex;gap:6px;align-items:center;font-size:12px;color:#cbd2d8}
     h2{font-size:11px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em;color:#8f9aa5;margin:17px 0 5px}
-    ul{list-style:none;padding:0;margin:0}.pack{padding:0;border-top:1px solid #ffffff14}.pack-row,.feature-row{display:flex;justify-content:space-between;gap:12px}.pack-row{padding:9px 0}.pack-row span:last-child,.feature-row span:last-child{color:#adb6bf;text-align:right}.pack-features{margin:0 0 7px 9px;padding-left:10px;border-left:1px solid #ffffff18}.feature-row{padding:5px 0;font-size:12px}.feature-row span:first-child{color:#cbd2d8}.live-label{padding:8px 0 3px 19px;color:#8f9aa5;font-size:10px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em}
+    ul{list-style:none;padding:0;margin:0}.pack{padding:0;border-top:1px solid #ffffff14}.pack-row,.feature-row{display:flex;justify-content:space-between;gap:12px}.pack-row{padding:9px 0}.pack-row span:last-child,.feature-row span:last-child{color:#adb6bf;text-align:right}.pack-features{margin:0 0 7px 9px;padding-left:10px;border-left:1px solid #ffffff18}.feature-item{padding:5px 0}.feature-row{font-size:12px}.feature-row span:first-child{color:#cbd2d8}.folder{border:0;background:none;color:#8fc9ff;padding:3px 0 0;width:100%;display:flex;gap:6px;align-items:center;text-align:left;font-size:11px;min-width:0}.folder svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;flex:none}.folder span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.folder.done{color:#77d8ac}.folder.failed{color:#e5b567}.live-label{padding:8px 0 3px 19px;color:#8f9aa5;font-size:10px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em}
     a{color:inherit;text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
     button:focus-visible{outline:2px solid #77d8ac;outline-offset:3px}
   `;
@@ -41,12 +41,11 @@ if (window.top === window) {
   const packs = element('div', {class:'packs', hidden:true}, [
     element('h2', {text:'Packs'}), element('ul'),
   ]);
+  const status = element('div', {class:'status'}, [statusDot, statusTitle]);
   const panel = element('section', {
     id:'panel', role:'region', 'aria-label':'TAP page context', hidden:true,
   }, [
-    element('header', {}, [element('strong', {text:'TAP'}), close]),
-    hostname,
-    element('div', {class:'status'}, [statusDot, statusTitle]),
+    element('header', {}, [element('strong', {text:'TAP'}), hostname, status, close]),
     packs,
   ]);
   const lamp = element('button', {
@@ -81,7 +80,8 @@ if (window.top === window) {
           ...pack,
           features:Array.isArray(pack.features) ? pack.features.filter(feature => feature
             && typeof feature.id === 'string' && typeof feature.label === 'string'
-            && typeof feature.value === 'string') : [],
+            && typeof feature.value === 'string'
+            && (feature.folder === undefined || typeof feature.folder === 'string')) : [],
         })) : [],
     };
   }
@@ -112,11 +112,42 @@ if (window.top === window) {
     return item;
   }
 
+  function folderIcon() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    const path = document.createElementNS(svg.namespaceURI, 'path');
+    path.setAttribute('d', 'M1.5 4.25h4l1.25-1.5h2.5l1.25 1.5h4v8.5h-13z');
+    svg.append(path);
+    return svg;
+  }
+
+  async function revealFolder(button, path) {
+    button.disabled = true;
+    button.classList.remove('done', 'failed');
+    try {
+      await window.TapBridge.request('tap.inspector', {action:'reveal_folder', path});
+      button.classList.add('done');
+    } catch {
+      button.classList.add('failed');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   function featureRows(features) {
     const list = element('ul', {class:'pack-features'});
     for (const feature of features) {
       if (typeof feature.label !== 'string' || typeof feature.value !== 'string') continue;
-      list.append(element('li', {}, [row(feature.label, feature.value, null, 'feature-row')]));
+      const item = element('li', {class:'feature-item'}, [row(feature.label, feature.value, null, 'feature-row')]);
+      if (typeof feature.folder === 'string') {
+        const folder = element('button', {
+          class:'folder', type:'button', title:feature.folder,
+          'aria-label':`Open ${feature.folder} in Finder`,
+        }, [folderIcon(), element('span', {text:feature.folder})]);
+        folder.onclick = () => revealFolder(folder, feature.folder);
+        item.append(folder);
+      }
+      list.append(item);
     }
     return list;
   }
