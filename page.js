@@ -17,6 +17,7 @@ if (window.top === window) {
     .status{display:flex;gap:9px;align-items:center;margin:18px 0 14px;padding:13px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08}
     h2{font-size:11px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em;color:#8f9aa5;margin:17px 0 5px}
     ul{list-style:none;padding:0;margin:0}li{padding:9px 0;border-top:1px solid #ffffff14;display:flex;justify-content:space-between;gap:12px}li span:last-child{color:#adb6bf;text-align:right}
+    a{color:inherit;text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
     button:focus-visible{outline:2px solid #77d8ac;outline-offset:3px}
   </style>
   <section id="panel" role="region" aria-label="TAP page context" hidden>
@@ -48,15 +49,26 @@ if (window.top === window) {
     };
   }
 
+  function repository(packId) {
+    const slug = packId.replace(/^tap\./, '').replaceAll('.', '-');
+    return `https://github.com/inem/tap-pack-${slug}`;
+  }
+
   function addRows(list, facts) {
     list.replaceChildren();
     for (const fact of facts) {
       if (typeof fact.label !== 'string' || typeof fact.value !== 'string') continue;
       const row = document.createElement('li');
-      for (const text of [fact.label, fact.value]) {
-        const span = document.createElement('span');
-        span.textContent = text;
-        row.append(span);
+      for (const [index, text] of [fact.label, fact.value].entries()) {
+        const element = index === 0 && typeof fact.href === 'string'
+          ? document.createElement('a') : document.createElement('span');
+        element.textContent = text;
+        if (element instanceof HTMLAnchorElement) {
+          element.href = fact.href;
+          element.target = '_blank';
+          element.rel = 'noopener noreferrer';
+        }
+        row.append(element);
       }
       list.append(row);
     }
@@ -74,7 +86,9 @@ if (window.top === window) {
     root.querySelector('.dot').className = `dot ${runtime.active ? 'active' : runtime.warning ? 'warning' : ''}`;
 
     const packsBlock = root.querySelector('.packs');
-    addRows(packsBlock.querySelector('ul'), runtime.packs.map(pack => ({label:pack.id,value:pack.version})));
+    addRows(packsBlock.querySelector('ul'), runtime.packs.map(pack => ({
+      label:pack.id,value:pack.version,href:repository(pack.id),
+    })));
     packsBlock.hidden = runtime.packs.length === 0;
 
     const factsBlock = root.querySelector('.facts');
