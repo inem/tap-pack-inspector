@@ -12,7 +12,8 @@ The same snapshot is usable by another page-local projection. Labels are plain
 text, never HTML. This is a small observation seam, not an ontology compiler.
 
 The runtime view uses `TapBridge.status().packs`. It displays each `{id, version}`
-verbatim under `Packs`. `Features` contains the current `{label, value}` facts from
+verbatim under `Packs`; pack IDs link to the corresponding `inem/tap-pack-*`
+repository by the current repository naming convention. `Features` contains the current `{label, value}` facts from
 the context registry. No new network calls are made. No tokens, request contents,
 or privileged Core controls are exposed.
 
@@ -28,6 +29,12 @@ No persistence or Core enable/disable actions are offered.
 Build/check with the SDK; tests/browser.cjs exercises the generated artifact with
 synthetic sources in isolated Chrome, including missing Core context, pack versions,
 changing and removed feature facts, Escape, reinjection and disposal.
+
+## 0.3.2
+
+Pack IDs link to repositories using the current `inem/tap-pack-*` naming
+convention. This is a temporary presentation resolver until repository metadata
+is part of the pack identity supplied by Core.
 
 ## 0.3.1
 
