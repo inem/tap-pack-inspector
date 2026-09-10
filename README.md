@@ -70,3 +70,9 @@ Bridge context now adapts Core status() and advertised connect/disconnect/reconn
 actions. The view renders provided actions and re-resolves availability on click.
 The companion patch is in ../tap-bridge-controls; older runtimes remain read-only.
 LinkedIn counters were removed in 0.4.11. No list of handler operations is claimed.
+
+## 0.3.5
+
+The corner LED turns blue while the page bridge has a WebSocket request in flight.
+It reads only the generic pending count exposed by Core and does not infer the
+request's handler, intent, or page semantics. Green returns when the transport is idle.
