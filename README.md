@@ -29,6 +29,11 @@ click, or × closes it.
 Duplicate injection disposes the previous indicator and its listeners/timer.
 No persistence or Core enable/disable actions are offered.
 
+## 0.3.4
+
+The inspector constructs its shadow DOM with DOM APIs, so it works on pages such
+as YouTube that enforce Trusted Types and reject string assignment to `innerHTML`.
+
 Build/check with the SDK; tests/browser.cjs exercises the generated artifact with
 synthetic sources in isolated Chrome, including missing Core context, pack versions,
 changing and removed feature facts, Escape, reinjection and disposal.

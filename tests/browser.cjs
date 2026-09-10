@@ -13,7 +13,7 @@ const fs=require('fs'),assert=require('node:assert/strict');
     const page=await browser.newPage();
     await page.route('**/*',route=>route.fulfill({body:'<!doctype html><h1>Fixture</h1>',contentType:'text/html'}));
     await page.goto('https://fixture.example');
-    const pack=process.argv[2] || 'artifacts/tap-inspector-0.3.3-built/pack';
+    const pack=process.argv[2] || 'artifacts/tap-inspector-0.3.4-built/pack';
     const code=fs.readFileSync(`${pack}/page.js`,'utf8');
     await page.addScriptTag({content:code});
     const lamp=page.getByRole('button',{name:'Open TAP page context'});

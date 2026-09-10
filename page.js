@@ -7,7 +7,8 @@ if (window.top === window) {
   const host = document.createElement('div');
   host.dataset.tapInspector = '';
   const root = host.attachShadow({mode:'open'});
-  root.innerHTML = `<style>
+  const style = document.createElement('style');
+  style.textContent = `
     :host{position:fixed!important;bottom:0!important;left:0!important;z-index:2147483646!important;font:13px/1.45 system-ui,-apple-system,sans-serif!important;color:#eef1f3!important;color-scheme:dark}
     *{box-sizing:border-box}button{font:inherit;color:inherit;cursor:pointer}
     .lamp{border:0;background:transparent;width:20px;height:20px;padding:6px;display:flex;align-items:center;justify-content:center}
@@ -19,19 +20,44 @@ if (window.top === window) {
     ul{list-style:none;padding:0;margin:0}li{padding:9px 0;border-top:1px solid #ffffff14;display:flex;justify-content:space-between;gap:12px}li span:last-child{color:#adb6bf;text-align:right}
     a{color:inherit;text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
     button:focus-visible{outline:2px solid #77d8ac;outline-offset:3px}
-  </style>
-  <section id="panel" role="region" aria-label="TAP page context" hidden>
-    <header><strong>TAP</strong><button aria-label="Close">×</button></header>
-    <small class="hostname"></small>
-    <div class="status"><span class="status-dot"></span><strong></strong></div>
-    <div class="packs" hidden><h2>Packs</h2><ul></ul></div>
-    <div class="facts" hidden><h2>Features</h2><ul></ul></div>
-  </section>
-  <button class="lamp" aria-label="Open TAP page context" aria-expanded="false" aria-controls="panel"><span class="dot"></span></button>`;
+  `;
+  const element = (tag, attributes = {}, children = []) => {
+    const node = document.createElement(tag);
+    for (const [name, value] of Object.entries(attributes)) {
+      if (name === 'class') node.className = value;
+      else if (name === 'text') node.textContent = value;
+      else if (name === 'hidden') node.hidden = value;
+      else node.setAttribute(name, value);
+    }
+    node.append(...children);
+    return node;
+  };
+  const close = element('button', {'aria-label':'Close', text:'×'});
+  const hostname = element('small', {class:'hostname'});
+  const statusDot = element('span', {class:'status-dot'});
+  const statusTitle = element('strong');
+  const packs = element('div', {class:'packs', hidden:true}, [
+    element('h2', {text:'Packs'}), element('ul'),
+  ]);
+  const facts = element('div', {class:'facts', hidden:true}, [
+    element('h2', {text:'Features'}), element('ul'),
+  ]);
+  const panel = element('section', {
+    id:'panel', role:'region', 'aria-label':'TAP page context', hidden:true,
+  }, [
+    element('header', {}, [element('strong', {text:'TAP'}), close]),
+    hostname,
+    element('div', {class:'status'}, [statusDot, statusTitle]),
+    packs,
+    facts,
+  ]);
+  const lamp = element('button', {
+    class:'lamp', 'aria-label':'Open TAP page context',
+    'aria-expanded':'false', 'aria-controls':'panel',
+  }, [element('span', {class:'dot'})]);
+  root.append(style, panel, lamp);
 
-  const panel = root.querySelector('section');
-  const lamp = root.querySelector('.lamp');
-  root.querySelector('.hostname').textContent = location.hostname;
+  hostname.textContent = location.hostname;
   let previous = '';
 
   function runtimeSnapshot() {
@@ -114,7 +140,7 @@ if (window.top === window) {
   }
 
   lamp.onclick = () => open(panel.hidden);
-  root.querySelector('header button').onclick = () => { open(false); lamp.focus(); };
+  close.onclick = () => { open(false); lamp.focus(); };
   const outside = event => { if (!event.composedPath().includes(host)) open(false); };
   const keyboard = event => { if (event.key === 'Escape' && !panel.hidden) { open(false); lamp.focus(); } };
   document.addEventListener('pointerdown', outside);
