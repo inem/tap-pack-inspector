@@ -12,10 +12,11 @@ The same snapshot is usable by another page-local projection. Labels are plain
 text, never HTML. This is a small observation seam, not an ontology compiler.
 
 The runtime view uses `TapBridge.status().packs`. It displays each `{id, version, features}`
-verbatim under `Packs`; pack IDs link to the corresponding `inem/tap-pack-*`
-repository by the current repository naming convention. `Features` combines
-pack-owned static facts with current `{label, value}` facts from the context
-registry. No new network calls are made. No tokens, request contents,
+under `Packs`, with the pack-owned features nested directly below their pack; pack IDs link
+to the corresponding `inem/tap-pack-*` repository by the current repository naming
+convention. Current `{label, value}` facts from the context registry appear in a compact
+`Live on this page` group in the same section because the v1 observation contract does not
+identify an owning pack. No new network calls are made. No tokens, request contents,
 or privileged Core controls are exposed.
 
 Packs can contribute independently. An empty `Features` slot means that no loaded
@@ -90,3 +91,9 @@ briefly so a fast page inspection is still visible.
 During bridge activity the blue corner LED grows and pulses until the activity
 window closes. Reduced-motion environments keep the enlarged blue state without
 animation.
+
+## 0.3.8
+
+Pack identity, version and declared features are presented as one grouped list.
+Dynamic page observations remain in that section under `Live on this page` until
+their contract can identify an owning pack.
