@@ -59,6 +59,7 @@ if (window.top === window) {
 
   hostname.textContent = location.hostname;
   let previous = '';
+  let activitySequence = 0, activityUntil = 0;
 
   function runtimeSnapshot() {
     const bridge = window.TapBridge;
@@ -66,9 +67,15 @@ if (window.top === window) {
     const plan = status.plan_state || (bridge ? 'current' : 'absent');
     const active = Boolean(bridge) && plan !== 'revoked';
     const updating = plan === 'checking' || plan === 'reloading';
+    const activity = status.activity && typeof status.activity === 'object' ? status.activity : {};
+    if (Number.isInteger(activity.sequence) && activity.sequence !== activitySequence) {
+      activitySequence = activity.sequence;
+      activityUntil = Date.now() + 700;
+    }
     return {
       active,
-      transportActive: Number.isInteger(status.pending) && status.pending > 0,
+      transportActive: (Number.isInteger(activity.pending) && activity.pending > 0)
+        || Date.now() < activityUntil || (Number.isInteger(status.pending) && status.pending > 0),
       warning: Boolean(bridge) && plan === 'unavailable',
       title: !bridge ? 'Unavailable' : plan === 'revoked' ? 'Inactive' : updating ? 'Updating' : 'Active',
       packs: Array.isArray(status.packs) ? status.packs.filter(pack => pack
@@ -154,6 +161,41 @@ if (window.top === window) {
   const keyboard = event => { if (event.key === 'Escape' && !panel.hidden) { open(false); lamp.focus(); } };
   document.addEventListener('pointerdown', outside);
   document.addEventListener('keydown', keyboard);
+  const disposers = [];
+  const bridge = window.TapBridge;
+  if (typeof bridge?.expose === 'function') {
+    disposers.push(bridge.expose('tap.inspector.describe', () => ({
+      url:location.href,
+      title:document.title,
+      readyState:document.readyState,
+      visibilityState:document.visibilityState,
+      viewport:{width:innerWidth,height:innerHeight,devicePixelRatio},
+      counts:{links:document.links.length,images:document.images.length,forms:document.forms.length},
+    })));
+    disposers.push(bridge.expose('tap.inspector.query', args => {
+      if (!args || typeof args.selector !== 'string' || !args.selector || args.selector.length > 1000)
+        throw Object.assign(new Error('A selector up to 1000 characters is required'), {code:'invalid_selector'});
+      const limit = Number.isInteger(args.limit) ? Math.max(1, Math.min(50, args.limit)) : 20;
+      let matches;
+      try { matches = [...document.querySelectorAll(args.selector)].slice(0, limit); }
+      catch { throw Object.assign(new Error('The selector is invalid'), {code:'invalid_selector'}); }
+      return matches.map(node => {
+        const rect = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return {
+          tag:node.localName,
+          id:node.id || null,
+          class:typeof node.className === 'string' ? node.className.slice(0,500) : null,
+          role:node.getAttribute('role'),
+          ariaLabel:node.getAttribute('aria-label'),
+          text:(node.innerText || node.textContent || '').trim().slice(0,2000),
+          href:node instanceof HTMLAnchorElement ? node.href : null,
+          visible:style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0,
+          rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},
+        };
+      });
+    }));
+  }
   document.documentElement.append(host);
   refresh();
   const timer = setInterval(refresh, 1000);
@@ -161,6 +203,7 @@ if (window.top === window) {
   window.__tapInspector = {dispose() {
     clearInterval(timer);
     clearInterval(lampTimer);
+    for (const dispose of disposers) dispose();
     host.remove();
     document.removeEventListener('pointerdown', outside);
     document.removeEventListener('keydown', keyboard);

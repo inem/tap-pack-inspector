@@ -76,3 +76,11 @@ LinkedIn counters were removed in 0.4.11. No list of handler operations is claim
 The corner LED turns blue while the page bridge has a WebSocket request in flight.
 It reads only the generic pending count exposed by Core and does not infer the
 request's handler, intent, or page semantics. Green returns when the transport is idle.
+
+## 0.3.6
+
+The pack exposes `tap.inspector.describe` and `tap.inspector.query` through Core's
+generic `TapBridge.expose(operation, handler)` boundary. Core transports opaque
+operation names and JSON values; DOM selection and the bounded result shape remain
+owned here. The LED follows Core's generic activity counter and holds the blue flash
+briefly so a fast page inspection is still visible.
