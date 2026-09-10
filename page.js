@@ -45,7 +45,12 @@ if (window.top === window) {
       warning: Boolean(bridge) && plan === 'unavailable',
       title: !bridge ? 'Unavailable' : plan === 'revoked' ? 'Inactive' : updating ? 'Updating' : 'Active',
       packs: Array.isArray(status.packs) ? status.packs.filter(pack => pack
-        && typeof pack.id === 'string' && typeof pack.version === 'string') : [],
+        && typeof pack.id === 'string' && typeof pack.version === 'string').map(pack => ({
+          ...pack,
+          features:Array.isArray(pack.features) ? pack.features.filter(feature => feature
+            && typeof feature.id === 'string' && typeof feature.label === 'string'
+            && typeof feature.value === 'string') : [],
+        })) : [],
     };
   }
 
@@ -76,7 +81,13 @@ if (window.top === window) {
 
   function refresh() {
     const runtime = runtimeSnapshot();
-    const facts = observations.snapshot();
+    const facts = [
+      ...runtime.packs.flatMap(pack => pack.features.map(feature => ({
+        id:`${pack.id}.${feature.id}`,kind:'feature',
+        label:`${pack.id} · ${feature.label}`,value:feature.value,
+      }))),
+      ...observations.snapshot(),
+    ];
     const signature = JSON.stringify({runtime,facts});
     if (signature === previous) return;
     previous = signature;

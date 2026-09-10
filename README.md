@@ -1,9 +1,9 @@
 # TAP inspector
 
-Page-only expandable indicator. Core supplies the origin-scoped pack identities
-and versions that were applied to the document. Independent page packs contribute
-their own feature facts through `tap-pack-sdk/context`. The inspector only renders
-those two generic inputs; it has no site, transport, capture, or feature semantics.
+Page-only expandable indicator. Core supplies the origin-scoped pack identities,
+versions and static manifest features. Independent page packs can additionally
+contribute changing facts through `tap-pack-sdk/context`. The inspector only renders
+those generic inputs; it has no site, transport, capture, or feature semantics.
 The shared context source lives in `../tap-pack-sdk/src/context.js`.
 
 `context(window).provide(() => [{label, value}])` returns an unregister function.
@@ -11,10 +11,11 @@ Sources return current observations; the inspector samples them once per second.
 The same snapshot is usable by another page-local projection. Labels are plain
 text, never HTML. This is a small observation seam, not an ontology compiler.
 
-The runtime view uses `TapBridge.status().packs`. It displays each `{id, version}`
+The runtime view uses `TapBridge.status().packs`. It displays each `{id, version, features}`
 verbatim under `Packs`; pack IDs link to the corresponding `inem/tap-pack-*`
-repository by the current repository naming convention. `Features` contains the current `{label, value}` facts from
-the context registry. No new network calls are made. No tokens, request contents,
+repository by the current repository naming convention. `Features` combines
+pack-owned static facts with current `{label, value}` facts from the context
+registry. No new network calls are made. No tokens, request contents,
 or privileged Core controls are exposed.
 
 Packs can contribute independently. An empty `Features` slot means that no loaded
@@ -29,6 +30,12 @@ No persistence or Core enable/disable actions are offered.
 Build/check with the SDK; tests/browser.cjs exercises the generated artifact with
 synthetic sources in isolated Chrome, including missing Core context, pack versions,
 changing and removed feature facts, Escape, reinjection and disposal.
+
+## 0.3.3
+
+Static manifest features carried in `TapBridge.status().packs` are shown alongside
+dynamic page observations. Reader-only packs therefore remain visible without
+adding a page script merely to describe themselves.
 
 ## 0.3.2
 
